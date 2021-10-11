@@ -1,0 +1,164 @@
+{
+    "elements": [
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "ColumnLayout",
+                    "items": [
+                        {
+                            "type": "ExpansionPanel",
+                            "caption": "Values",
+                            "width": "400px",
+                            "items": [
+                                {
+                                    "type": "Select",
+                                    "name": "AggregationLevel",
+                                    "caption": "Level",
+                                    "options": [
+                                        {
+                                            "caption": "Day",
+                                            "value": 1
+                                        },
+                                        {
+                                            "caption": "Week",
+                                            "value": 2
+                                        },
+                                        {
+                                            "caption": "Month",
+                                            "value": 3
+                                        },
+                                        {
+                                            "caption": "Year",
+                                            "value": 4
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "SelectVariable",
+                                    "name": "YVariable",
+                                    "caption": "Y Variable",
+                                    "requiredLogging": 1
+                                },
+                                {
+                                    "type": "SelectVariable",
+                                    "name": "XVariable",
+                                    "caption": "X Variable",
+                                    "requiredLogging": 1
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "SelectDate",
+                                            "caption": "Start Date",
+                                            "name": "StartDate",
+                                            "width": "150px"
+                                        },
+                                        {
+                                            "type": "SelectDate",
+                                            "caption": "End Date",
+                                            "name": "EndDate",
+                                            "width": "150px"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "type": "ExpansionPanel",
+                            "width": "400px",
+                            "caption": "Chart Settings",
+                            "items": [
+                                {
+                                    "type": "NumberSpinner",
+                                    "caption": "Axes Minor Step Size",
+                                    "name": "AxisMinorStep"
+                                },
+                                {
+                                    "type": "NumberSpinner",
+                                    "caption": "Axes Major Step Size",
+                                    "name": "AxisMajorStep"
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "Width",
+                                            "name": "ChartWidth",
+                                            "suffix": "px"
+                                        },
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "Height",
+                                            "name": "ChartHeight",
+                                            "suffix": "px"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "Select",
+                                    "name": "ChartFormat",
+                                    "caption": "Chart Format",
+                                    "options": [
+                                        {
+                                            "value": "svg",
+                                            "caption": "SVG (HTML Box)"
+                                        },
+                                        {
+                                            "value": "png",
+                                            "caption": "PNG (Media Object)"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "Image",
+                    "caption": "Chart",
+                    "name": "Chart"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "Button",
+                    "caption": "Generate",
+                    "onClick": "LR_UpdateChart($id);"
+                },
+                {
+                    "type": "Button",
+                    "caption": "Open in Browser",
+                    "link": true,
+                    "onClick": "LR_Download($id);"
+                }
+            ]
+        }
+    ],
+    "status": [
+        {
+            "code": 200,
+            "icon": "error",
+            "caption": "The number of values for the variables differ"
+        },
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "There are not enough values"
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "No variables selected"
+        }
+    ]
+}

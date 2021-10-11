@@ -1,0 +1,34 @@
+{
+    "translations": {
+        "de": {
+            "Values": "Werte",
+            "Y Variable": "Y Variable",
+            "X Variable": "X Variable",
+            "Start Date": "Startdatum",
+            "End Date": "Enddatum",
+            "Chart Settings": "Diagramm Einstellungen",
+            "Dynamic Axes": "Dynamische Achsen",
+            "Axes Minor Step Size": "Achsen kleine Schrittweite",
+            "Axes Major Step Size": "Achsen große Schrittweite",
+            "Generate": " Generieren",
+            "Good": "Gut",
+            "Better": "Besser",
+            "Open in Browser": "Im Browser öffnen",
+            "Level": "Stufe",
+            "Day": "Tag",
+            "Week": "Woche",
+            "Month": "Monat",
+            "Year": "Jahr",
+            "Complete": "Gesamt",
+            "There are not enough values": "Es gibt nicht genug Werte",
+            "Size": "Größe",
+            "Width": "Breite",
+            "Height": "Höhe",
+            "Chart Format": "Diagramm Format",
+            "SCG (HTML Box)": "SVG (HTML Box)",
+            "PNG (Media Object)": "PNG (Medienobjekt)",
+            "No variables selected": "Kein Variablen ausgewählt",
+            "The number of values for the variables differ": "Die Anzahl der Werte für die Variablen ist unterschiedlich"
+        }
+    }
+}
