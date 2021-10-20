@@ -9,13 +9,63 @@
                         {
                             "type": "ExpansionPanel",
                             "caption": "Values",
-                            "width": "400px",
+                            "width": "500px",
                             "items": [
+                                {
+                                    "type": "List",
+                                    "name": "AxesValues",
+                                    "caption": "Chart Values",
+                                    "add": true,
+                                    "columns": [
+                                        {
+                                            "caption": "X Value",
+                                            "name": "XValue",
+                                            "width": "auto",
+                                            "add": 0,
+                                            "edit": {
+                                                "type": "SelectVariable",
+                                                "requiredLogging": 1
+                                            }
+                                        },
+                                        {
+                                            "caption": "Y Value",
+                                            "name": "YValue",
+                                            "width": "150px",
+                                            "add": 0,
+                                            "edit": {
+                                                "type": "SelectVariable",
+                                                "requiredLogging": 1
+                                            }
+                                        },
+                                        {
+                                            "caption": "Point Color",
+                                            "name": "PointColor",
+                                            "width": "50px",
+                                            "add": 0,
+                                            "edit": {
+                                                "type": "SelectColor"
+                                            }
+                                        },
+                                        {
+                                            "caption": "Line Color",
+                                            "name": "LineColor",
+                                            "width": "50px",
+                                            "add": 0,
+                                            "edit": {
+                                                "type": "SelectColor"
+                                            }
+                                        }
+                                    ]
+                                },
                                 {
                                     "type": "Select",
                                     "name": "AggregationLevel",
-                                    "caption": "Level",
+                                    "caption": "Aggregation Level",
                                     "options": [
+                                        {
+                                            "caption": "Hour",
+                                            "value": 0
+                                        },
                                         {
                                             "caption": "Day",
                                             "value": 1
@@ -33,18 +83,6 @@
                                             "value": 4
                                         }
                                     ]
-                                },
-                                {
-                                    "type": "SelectVariable",
-                                    "name": "YVariable",
-                                    "caption": "Y Variable",
-                                    "requiredLogging": 1
-                                },
-                                {
-                                    "type": "SelectVariable",
-                                    "name": "XVariable",
-                                    "caption": "X Variable",
-                                    "requiredLogging": 1
                                 },
                                 {
                                     "type": "RowLayout",
@@ -67,7 +105,7 @@
                         },
                         {
                             "type": "ExpansionPanel",
-                            "width": "400px",
+                            "width": "500px",
                             "caption": "Chart Settings",
                             "items": [
                                 {
@@ -96,6 +134,40 @@
                                             "caption": "Height",
                                             "name": "ChartHeight",
                                             "suffix": "px"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "Y Min",
+                                            "name": "YMin"
+                                        },
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "Y Max",
+                                            "name": "YMax"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "items": [
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "X Min",
+                                            "name": "XMin"
+                                        },
+                                        {
+                                            "type": "NumberSpinner",
+                                            "width": "150px",
+                                            "caption": "X Max",
+                                            "name": "XMax"
                                         }
                                     ]
                                 },

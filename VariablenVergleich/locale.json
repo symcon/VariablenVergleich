@@ -14,7 +14,8 @@
             "Good": "Gut",
             "Better": "Besser",
             "Open in Browser": "Im Browser öffnen",
-            "Level": "Stufe",
+            "Aggregation Level": "Aggregationsstufe",
+            "Hour": "Stunde",
             "Day": "Tag",
             "Week": "Woche",
             "Month": "Monat",
@@ -28,7 +29,13 @@
             "SCG (HTML Box)": "SVG (HTML Box)",
             "PNG (Media Object)": "PNG (Medienobjekt)",
             "No variables selected": "Kein Variablen ausgewählt",
-            "The number of values for the variables differ": "Die Anzahl der Werte für die Variablen ist unterschiedlich"
+            "The number of values for the variables differ": "Die Anzahl der Werte für die Variablen ist unterschiedlich",
+            "Measure of determination": "Bestimmtheitsmaß",
+            "Chart Values": "Diagramm Werte",
+            "Point Color": "Punkt",
+            "Line Color": "Linie",
+            "X Value": "X Wert",
+            "Y Value": "Y Wert"
         }
     }
 }

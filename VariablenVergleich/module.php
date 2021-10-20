@@ -5,6 +5,10 @@ declare(strict_types=1);
 include_once __DIR__ . '/libs/WebHookModule.php';
     class VariablenVergleich extends WebHookModule
     {
+        const PNG_FONT_SIZE = 5;
+        const MINOR_LINE = 4 / 2;
+        const MAJOR_LINE = 8 / 2;
+        const CIRCLE_DIAMETER = 6;
         public function __construct($InstanceID)
         {
             parent::__construct($InstanceID, 'linear-regression/' . $InstanceID);
@@ -13,11 +17,10 @@ include_once __DIR__ . '/libs/WebHookModule.php';
         public function Create()
         {
             //Variable settings
-            $this->RegisterPropertyInteger('XVariable', 0);
-            $this->RegisterPropertyInteger('YVariable', 0);
             $this->RegisterPropertyInteger('AggregationLevel', 1);
             $this->RegisterPropertyString('StartDate', '{"year":2021,"month":1,"day":1}');
             $this->RegisterPropertyString('EndDate', '{"year":2021,"month":1,"day":1}');
+            $this->RegisterPropertyString('AxesValues', '[]');
             
             //Chart settings
             $this->RegisterPropertyInteger('AxisMinorStep', 1);
@@ -25,11 +28,18 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             $this->RegisterPropertyString('ChartFormat', 'svg');
             $this->RegisterPropertyInteger('ChartWidth', 1000);
             $this->RegisterPropertyInteger('ChartHeight', 500);
-            
-            
+            $this->RegisterPropertyInteger('YMax', 40);
+            $this->RegisterPropertyInteger('YMin', 0);
+            $this->RegisterPropertyInteger('XMax', 40);
+            $this->RegisterPropertyInteger('XMin', 0);
+
             $this->RegisterPropertyString('Chart', '');
             
             $this->RegisterVariableString('ChartSVG', $this->Translate('Chart'), '~HTMLBox');
+            $this->RegisterVariableString('Function', $this->Translate('Function'), '');
+            $this->RegisterVariableFloat('YIntercept', $this->Translate('b'), '');
+            $this->RegisterVariableFloat('Slope', $this->Translate('m'), '');
+            $this->RegisterVariableFloat('MeasureOfDetermination', $this->Translate('Measure of determination'), '');
         }
 
         public function Destroy()
@@ -108,80 +118,56 @@ include_once __DIR__ . '/libs/WebHookModule.php';
 
         public function generateChart()
         {
-            $xVariableId = $this->ReadPropertyInteger('XVariable');
-            $yVariableId = $this->ReadPropertyInteger('YVariable');
-            if ($xVariableId != 0 && $yVariableId != 0) {
-                $archiveID = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}')[0];
-                
-                $startDate = $this->dateTimeToTimestamp('StartDate');
-                $endDate = $this->dateTimeToTimestamp('EndDate');
-                $rawX = AC_GetAggregatedValues($archiveID, $xVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
-                $xVarValues = [];
-                foreach ($rawX as $dataset) {
-                    $xVarValues[] = $dataset['Avg'];
-                }
-                $valuesX = array_reverse($xVarValues);
-                
-                $rawY = AC_GetAggregatedValues($archiveID, $yVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
-                $yVarValues = [];
-                foreach ($rawY as $dataset) {
-                    $yVarValues[] = $dataset['Avg'];
-                }
-                $valuesY = array_reverse($yVarValues);
-                if (count($valuesX) != count($valuesY)) {
-                    $this->SetStatus(200);
-                    // The amount of values is not the same for both axis
-                    return null;
-                } elseif (count($valuesY) <= 1) {
-                    $this->SetStatus(201);
-                    // The count of values is zero or one which leads to an error in the linear regression
-                    return null;
-                }
-            } else {
-                //No vars selected
+            $yAxisMax = $this->ReadPropertyInteger('YMax');
+            $yAxisMin = $this->ReadPropertyInteger('YMin');
+            $xAxisMax = $this->ReadPropertyInteger('XMax');
+            $xAxisMin = $this->ReadPropertyInteger('XMin');
+            
+            $axesValues = json_decode($this->ReadPropertyString('AxesValues'), true);
+            if (count($axesValues) <= 0) {
                 $this->SetStatus(202);
-                return null;
+                return;
             }
+
             //Set the status to active if there are no errors
             $this->SetStatus(102);
-                
+            
             $customWidth = $this->ReadPropertyInteger('ChartWidth');
             $customHeight = $this->ReadPropertyInteger('ChartHeight');
-
+            
             $chartXOffset = 50;
             $chartYOffset = 50;
             $xRange = $customWidth - $chartXOffset;
             $width = $xRange + $chartXOffset;
             
-            $yRange = $customHeight - $chartYOffset;
-            $height = $yRange + $chartYOffset;
-
+            $xAvailablePixels = $customWidth - $chartYOffset * 2;
+            
+            $yAvailablePixels = $customHeight - $chartYOffset * 2;
+            $height = $customHeight;
+            
             $image=imagecreate($width, $height);
             $font = 5;
-
+            
             //PNG colors
             $white=imagecolorallocate($image, 255, 255, 255);
             $textWhite = imagecolorallocate($image, 254, 254, 254);
             $black=imagecolorallocate($image, 0, 0, 0);
             $textColor = $black;
-            $blue=imagecolorallocate($image, 0, 0, 225);
-            $green=imagecolorallocate($image, 0, 255, 0);
-            $red=imagecolorallocate($image, 255, 0, 0);
             imagecolortransparent($image, $white);
-                      
-            $yFloor = 0;
-            $xFloor = 0;
-            $yCeil = ceil(max($valuesY));
-            $xCeil = ceil(max($valuesX));
-
-            $getXValue = function ($x) use ($xRange, $valuesX, $chartXOffset, $xFloor, $customWidth, $xCeil) {
-                $minimum = min($valuesX) < 0 ? min($valuesX) : 0;
-                return intval(($chartXOffset - 1) + $x * (($customWidth - $chartXOffset * 2) / ($xCeil - $minimum)));
+            // imagefill($image, 0, 0, $grey);
+            
+            $dynamicXMinValue = $this->getDynamicMinValue($xAxisMin, $xAxisMax);
+            $getXValue = function ($x) use ($xRange, $chartXOffset, $customWidth, $xAvailablePixels, $dynamicXMinValue) {
+                $xAxisMin = $this->ReadPropertyInteger('XMin');
+                $xAxisMax = $this->ReadPropertyInteger('XMax');
+                return intval($this->getZeroX($xAxisMin, $xAxisMax, $xAvailablePixels) + ($x - $dynamicXMinValue) * (($xAvailablePixels) / ($xAxisMax - $xAxisMin))) - 1;
             };
 
-            $getYValue = function ($y) use ($valuesY, $yRange, $chartYOffset, $yFloor, $yCeil) {
-                $minimum = 0;//min($valuesY) < 0 ? min($valuesY) : 0;
-                return intval(($yRange + $chartYOffset) - $chartYOffset - $y * (($yRange + $chartYOffset - $chartYOffset * 2) / ($yCeil - $minimum)) - 1);
+            $dynamicYMinValue = $this->getDynamicMinValue($yAxisMin, $yAxisMax);
+
+            $getYValue = function ($y) use ($yAvailablePixels, $chartYOffset, $yAxisMin, $yAxisMax, $dynamicYMinValue) {
+                $yZero = $this->getZeroY($yAxisMin, $yAxisMax, $yAvailablePixels);
+                return intval($yZero - ($y - $dynamicYMinValue)  * (($yAvailablePixels) / ($yAxisMax - $yAxisMin))) - 1;
             };
             
            
@@ -189,87 +175,127 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             $svg .= 'width= "' . $width . '" height="' . $height . '" ';
             $svg .= 'xmlns="http://www.w3.org/2000/svg"> ';
 
-            //Linear regression
-            $lineParameters = $this->computeVariablenVergleichParameters($valuesX, $valuesY);
-            $maxX = max($valuesX);
-            $maxY = max($valuesY);
-            imageline($image, $getXValue($xFloor), $getYValue($lineParameters[0]), $getXValue($maxX), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $maxX))), $red);
-            $svg .= $this->drawLine($getXValue($xFloor), $getYValue($lineParameters[0]), $getXValue($maxX), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $maxX))), 'red');
-
 
             //Y AXIS
-            imageline($image, $getXValue($xFloor), intval($yRange - 1), $getXValue($xFloor), $getYValue($yCeil), $textColor);
-            $svg .= $this->drawLine($getXValue($xFloor), $yRange - 1, $getXValue($xFloor), $getYValue($yCeil), 'black');
-            $svg .= $this->drawPolygon([
-                [$getXValue($xFloor), $getYValue($yCeil) - 2],
-                [$getXValue($xFloor) + 4, $chartYOffset + 1 + 8],
-                [$getXValue($xFloor) - 4, $chartYOffset + 1 + 8],
-            ]);
+            imageline($image, $getXValue($dynamicXMinValue), $getYValue($yAxisMin), $getXValue($dynamicXMinValue), $getYValue($yAxisMax), $textColor);
+            $svg .= $this->drawLine($getXValue($dynamicXMinValue), $getYValue($yAxisMin), $getXValue($dynamicXMinValue), $getYValue($yAxisMax), 'black');
 
 
             //Y number line
             $axisLabelOffset = 5;
             $svgOffset = 5;
             $charWidth = imagefontwidth($font);
-            for ($i = $yFloor; $i < ceil($maxY); $i++) {
+            $yAxisPosition = $getXValue($dynamicXMinValue);
+            for ($j = $yAxisMin; $j <= $yAxisMax; $j++) {
                 $offset = intval(imagefontheight($font) / 2);
-                if ($i % $this->ReadPropertyInteger('AxisMajorStep') == 0) {
-                    imageline($image, $getXValue($xFloor) - 4, $getYValue($i), $getXValue($xFloor) + 4, $getYValue($i), $textColor);
-                    imagestring($image, $font, $getXValue($xFloor) - ($charWidth * strlen(strval($i))) -  $axisLabelOffset, $getYValue($i) - $offset, strval($i), $textColor);
-                    $svg .= $this->drawLine($getXValue($xFloor) - 4, $getYValue($i), $getXValue($xFloor) + 4, $getYValue($i), 'black');
-                    $svg .= $this->drawText($getXValue($xFloor) - $svgOffset, $getYValue($i), 'black', 15, strval($i), true);
-                } elseif ($i % $this->ReadPropertyInteger('AxisMinorStep') == 0) {
-                    imageline($image, $getXValue($xFloor) - 2, $getYValue($i), $getXValue($xFloor) + 2, $getYValue($i), $textColor);
-                    $svg .= $this->drawLine($getXValue($xFloor) - 2, $getYValue($i), $getXValue($xFloor) + 2, $getYValue($i), 'black');
+                $stepPosition = $getYValue($j);
+                if ($j % $this->ReadPropertyInteger('AxisMajorStep') == 0) {
+                    imageline($image, $yAxisPosition - self::MAJOR_LINE, $stepPosition, $yAxisPosition + self::MAJOR_LINE, $stepPosition, $textColor);
+                    imagestring($image, $font, $yAxisPosition - ($charWidth * strlen(strval($j))) -  $axisLabelOffset, $stepPosition - $offset, strval($j), $textColor);
+                    $svg .= $this->drawLine($yAxisPosition - self::MAJOR_LINE, $stepPosition, $yAxisPosition + self::MAJOR_LINE, $stepPosition, 'black');
+                    $svg .= $this->drawText($yAxisPosition - $svgOffset, $stepPosition, 'black', 15, strval($j), true);
+                } elseif ($j % $this->ReadPropertyInteger('AxisMinorStep') == 0) {
+                    imageline($image, $yAxisPosition - self::MINOR_LINE, $stepPosition, $yAxisPosition + self::MINOR_LINE, $stepPosition, $textColor);
+                    $svg .= $this->drawLine($yAxisPosition - self::MINOR_LINE, $stepPosition, $yAxisPosition + self::MINOR_LINE, $stepPosition, 'black');
                 }
             }
 
             $axisNameLabelOffset = 25;
             //Y label
             $charHeight = imagefontheight($font);
-            $yLabelText = $this->getAxisLabel('YVariable');
-            imagestringup($image, 5, $getXValue($xFloor) - imagefontheight($font) - $axisLabelOffset - ($charWidth * strlen(strval(ceil($maxY)))), intval($customHeight/2 + (($charWidth * strlen($yLabelText)) / 2)), $yLabelText, $textColor);
+            $yLabelText = $this->getAxisLabel('YValue');
+            imagestringup($image, 5, $getXValue($xAxisMin) - imagefontheight($font) - $axisLabelOffset * 2 - ($charWidth * strlen(strval($yAxisMax))), intval($customHeight/2 + (($charWidth * strlen($yLabelText)) / 2)), $yLabelText, $textColor);
             $svg .= $this->drawAxisTitle(1 + $svgOffset, $customHeight / 2, 'black', $yLabelText, true);
-            
+        
             //X AXIS
-            imageline($image, $getXValue($xFloor), $getYValue($yFloor), $width - $chartXOffset - 1, $getYValue($yFloor), $textColor);
-            $svg .= $this->drawLine($getXValue($xFloor), $getYValue($yFloor), $width - $chartXOffset - 1, $getYValue($yFloor), 'black');
-            $svg .= $this->drawPolygon([
-                [$getXValue($xCeil) + 4, $getYValue($yFloor)],
-                [$getXValue($xCeil)   - 8, $getYValue($yFloor) + 4],
-                [$getXValue($xCeil)   - 8, $getYValue($yFloor) - 4],
-            ]);
-            
-            
+            imageline($image, $getXValue($xAxisMin), $getYValue($dynamicYMinValue), $getXValue($xAxisMax), $getYValue($dynamicYMinValue), $textColor);
+            $svg .= $this->drawLine($getXValue($xAxisMin), $getYValue($dynamicYMinValue), $getXValue($xAxisMax), $getYValue($dynamicYMinValue), 'black');
+        
+        
             //X number line
-            for ($i = $xFloor; $i < $xCeil; $i++) {
-                if ($i % $this->ReadPropertyInteger('AxisMajorStep') == 0) {
-                    $valueString = strval($i);
+            for ($j = $xAxisMin; $j <= $xAxisMax; $j++) {
+                $stepPosition = $getXValue($j);
+                if ($j % $this->ReadPropertyInteger('AxisMajorStep') == 0) {
+                    $valueString = strval($j);
                     $offset = intval((strlen($valueString) * $charWidth) / 2);
-                    imageline($image, $getXValue($i), $getYValue($yFloor) - 4, $getXValue($i), $getYValue($yFloor) + 4, $textColor);
-                    imagestring($image, $font, $getXValue($i) - $offset, $getYValue($yFloor) + 10, strval($i), $textColor);
-                    $svg .= $this->drawLine($getXValue($i), $getYValue($yFloor) - 4, $getXValue($i), $getYValue($yFloor) + 4, 'black');
-                    $svg .= $this->drawText($getXValue($i), $getYValue($yFloor) + $svgOffset, 'black', 15, $valueString, false);
-                } elseif ($i % $this->ReadPropertyInteger('AxisMinorStep') == 0) {
-                    imageline($image, $getXValue($i), $getYValue($yFloor) - 2, $getXValue($i), $getYValue($yFloor) + 2, $textColor);
-                    $svg .= $this->drawLine($getXValue($i), $getYValue($yFloor) - 2, $getXValue($i), $getYValue($yFloor) + 2, 'black');
+                    imageline($image, $stepPosition, $getYValue($dynamicYMinValue) - self::MAJOR_LINE, $stepPosition, $getYValue($dynamicYMinValue) + self::MAJOR_LINE, $textColor);
+                    imagestring($image, $font, $getXValue($j) - $offset, $getYValue($dynamicYMinValue) + 10, strval($j), $textColor);
+                    $svg .= $this->drawLine($stepPosition, $getYValue($dynamicYMinValue) - self::MAJOR_LINE, $stepPosition, $getYValue($dynamicYMinValue) + self::MAJOR_LINE, 'black');
+                    $svg .= $this->drawText($stepPosition, $getYValue($dynamicYMinValue) + $svgOffset, 'black', 15, $valueString, false);
+                } elseif ($j % $this->ReadPropertyInteger('AxisMinorStep') == 0) {
+                    imageline($image, $stepPosition, $getYValue($dynamicYMinValue) - self::MINOR_LINE, $stepPosition, $getYValue($dynamicYMinValue) + self::MINOR_LINE, $textColor);
+                    $svg .= $this->drawLine($stepPosition, $getYValue($dynamicYMinValue) - self::MINOR_LINE, $stepPosition, $getYValue($dynamicYMinValue) + self::MINOR_LINE, 'black');
                 }
             }
-            
+        
             //X label
-            $xLabelText = $this->getAxisLabel('XVariable');
-            imagestring($image, 5, $customWidth/2 - intval((strlen($xLabelText) * $charWidth) / 2), $getYValue($yFloor) + $axisNameLabelOffset, $xLabelText, $textColor);
+            $xLabelText = $this->getAxisLabel('XValue');
+            imagestring($image, 5, $customWidth/2 - intval((strlen($xLabelText) * $charWidth) / 2), $getYValue($xAxisMin) + $axisNameLabelOffset, $xLabelText, $textColor);
             $svg .= $this->drawAxisTitle($customWidth/2, $customHeight - $svgOffset, 'black', $xLabelText);
 
+            for ($i = 0; $i < count($axesValues); $i++) {
+                $xVariableId = $axesValues[$i]['XValue'];
+                $yVariableId = $axesValues[$i]['YValue'];
+                if ($xVariableId != 0 && $yVariableId != 0) {
+                    $archiveID = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}')[0];
+                
+                    $startDate = $this->dateTimeToTimestamp('StartDate');
+                    $endDate = $this->dateTimeToTimestamp('EndDate');
+                    $rawX = AC_GetAggregatedValues($archiveID, $xVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
+                    $xVarValues = [];
+                    foreach ($rawX as $dataset) {
+                        $xVarValues[] = $dataset['Avg'];
+                    }
+                    $valuesX = array_reverse($xVarValues);
+                
+                    $rawY = AC_GetAggregatedValues($archiveID, $yVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
+                    $yVarValues = [];
+                    foreach ($rawY as $dataset) {
+                        $yVarValues[] = $dataset['Avg'];
+                    }
+                    $valuesY = array_reverse($yVarValues);
+                    if (count($valuesX) != count($valuesY)) {
+                        $this->SetStatus(200);
+                        // The amount of values is not the same for both axis
+                        return null;
+                    } elseif (count($valuesY) <= 1) {
+                        $this->SetStatus(201);
+                        // The count of values is zero or one which leads to an error in the linear regression
+                        return null;
+                    }
+                } else {
+                    //No vars selected
+                    $this->SetStatus(202);
+                    return null;
+                }
+                
+                //Draw point cloud
+                $pointHex = '#' . str_pad(dechex($axesValues[$i]['PointColor']), 6, '0', STR_PAD_LEFT);
+                $pointRGB = $this->splitHexToRGB($pointHex);
+                $pointColor = imagecolorallocate($image, $pointRGB[0], $pointRGB[1], $pointRGB[2]);
+                for ($j = 0; $j < count($valuesY); $j++) {
+                    $xValue = $getXValue($valuesX[$j]);
+                    $yValue = $getYValue($valuesY[$j]);
+                    $this->pngPoint($image, $xValue, $yValue, self::CIRCLE_DIAMETER, $pointColor);
+                    $svg .= $this->drawCircle($xValue, $yValue, self::CIRCLE_DIAMETER / 2, $pointHex);
+                }
 
-            for ($i = 0; $i < count($valuesY); $i++) {
-                $xValue = $getXValue($valuesX[$i]);
-                $yValue = $getYValue($valuesY[$i]);
-                $this->pngPoint($image, $xValue, $yValue, 5, $blue);
-                $svg .= $this->drawCircle($xValue, $yValue, 2, 'blue');
+                //Linear regression
+                $lineHex = '#' . str_pad(dechex($axesValues[$i]['LineColor']), 6, '0', STR_PAD_LEFT);
+                $lineRGB = $this->splitHexToRGB($lineHex);
+                $lineSVGColor = 'rgb(' . join(',', $lineRGB) . ')';
+                $lineColor = imagecolorallocate($image, $lineRGB[0], $lineRGB[1], $lineRGB[2]);
+                $lineParameters = $this->computeLinearRegressionParameters($valuesX, $valuesY);
+                $this->SetValue('YIntercept', $lineParameters[0]);
+                $this->SetValue('Slope', $lineParameters[1]);
+                $this->SetValue('Function', sprintf('f(x) = %s - %sx', $lineParameters[0], $lineParameters[1]));
+                $this->SetValue('MeasureOfDetermination', $lineParameters[2]);
+                imageline($image, $getXValue($xAxisMin), $getYValue($lineParameters[0]), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineColor);
+                $svg .= $this->drawLine($getXValue($xAxisMin), $getYValue($lineParameters[0]), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineSVGColor);
             }
-
+            
             $svg .= '</svg>';
+            // $this->SendDebug('SVG', $svg, 0);
 
             //Base64 encode image
             ob_start();
@@ -284,6 +310,65 @@ include_once __DIR__ . '/libs/WebHookModule.php';
                 'SVG' => $svg,
                 'PNG' => $base64
             ];
+        }
+
+        private function getZeroY($min, $max, $availableSpace)
+        {
+            $ratio = abs($max) / (abs($min) + abs($max));
+            //Positive
+            if (($min >= 0) && ($max >= 0)) {
+                return $availableSpace + 50;
+            //Negative
+            } elseif (($min <= 0) && ($max <= 0)) {
+                return 50;
+            } else {
+                return 50 + ($availableSpace * $ratio);
+            }
+        }
+
+
+        private function getZeroX($min, $max, $availableSpace)
+        {
+            $ratio = 1 - abs($max) / (abs($min) + abs($max));
+            //Positive
+            if (($min >= 0) && ($max >= 0)) {
+                return 50;
+            //Negative
+            } elseif (($min <= 0) && ($max <= 0)) {
+                return $availableSpace + 50;
+            } else {
+                return 50 + ($availableSpace * $ratio);
+            }
+        }
+
+        private function sameSign($min, $max)
+        {
+            return ($min * $max) >= 0;
+        }
+
+        private function getDynamicMinValue($min, $max)
+        {
+            if (($min >= 0) && ($max >= 0)) {
+                return $min;
+            } elseif (($min <= 0) && ($max <= 0)) {
+                return $max;
+            } else {
+                return 0;
+            }
+        }
+
+        private function splitHexToRGB(String $hex)
+        {
+            $rgb = sscanf($hex, '#%02x%02x%02x');
+            $this->SendDebug('HEX', $hex, 0);
+            $this->SendDebug('RGB', json_encode($rgb), 0);
+            $fixedRGB = [
+                $rgb[0] === null ? 0 : $rgb[0],
+                $rgb[1] === null ? 0 : $rgb[1],
+                $rgb[2] === null ? 0 : $rgb[2]
+            ];
+            $this->SendDebug('FIXED_RGB', json_encode($fixedRGB), 0);
+            return $fixedRGB;
         }
 
         private function dateTimeToTimestamp($property)
@@ -319,9 +404,10 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             return "<text x=\"$x\" y=\"$y\" font-size=\"$size\" text-anchor=\"middle\" fill=\"$color\" font-family=\"Roboto\">$text</text>";
         }
 
-        private function getAxisLabel(string $variableProperty)
+        private function getAxisLabel(string $axis)
         {
-            $variableID = $this->ReadPropertyInteger($variableProperty);
+            $values = json_decode($this->ReadPropertyString('AxesValues'), true);
+            $variableID = $values[0][$axis];
             $variable = IPS_GetVariable($variableID);
             $profileName = $variable['VariableProfile'] ? $variable['VariableProfile'] : $variable['VariableCustomProfile'];
             $profile = IPS_GetVariableProfile($profileName);
@@ -329,9 +415,10 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             return utf8_decode(IPS_GetName($variableID) . ' in' . $suffix);
         }
 
-        private function drawCircle($x, $y, $radius, $color)
+        private function drawCircle($x, $y, $radius, $hexString)
         {
-            return "<circle cx=\"$x\" cy=\"$y\" r=\"$radius\" fill=\"$color\" />";
+            $rgbColor = 'rgb(' . join(',', $this->splitHexToRGB($hexString)) . ')';
+            return "<circle cx=\"$x\" cy=\"$y\" r=\"$radius\" fill=\"$rgbColor\" />";
         }
 
         private function drawLine($x1, $y1, $x2, $y2, $color)
@@ -351,7 +438,7 @@ include_once __DIR__ . '/libs/WebHookModule.php';
         }
 
         //Formular from example at https://de.wikipedia.org/wiki/Lineare_Einfachregression https://wikimedia.org/api/rest_v1/media/math/render/svg/31c4eb5b4144dc6ff9364337f902c9ca65623039
-        private function computeVariablenVergleichParameters(array $valuesX, array $valuesY)
+        private function computeLinearRegressionParameters(array $valuesX, array $valuesY)
         {
             $averageX = array_sum($valuesX) / count($valuesX);
             $averageY = array_sum($valuesY) / count($valuesY);
@@ -362,10 +449,17 @@ include_once __DIR__ . '/libs/WebHookModule.php';
                 $beta1Divider += pow(($valuesX[$i] - $averageX), 2);
             }
             $beta1 = $beta1Denominator / $beta1Divider;
-
+            
             $beta0 = $averageY - ($beta1 * $averageX);
             
-            return [$beta0, $beta1];
+            $sqr = 0;
+            $sqt = 0;
+            for ($i = 0; $i < count($valuesX); $i++) {
+                $sqr += pow(($valuesY[$i] - $beta0 - ($beta1 * $valuesX[$i])), 2);
+                $sqt += pow(($valuesY[$i] - $averageY), 2);
+            }
+            $measureOfDetermination = 1 - ($sqr / $sqt);
+            return [$beta0, $beta1, $measureOfDetermination];
         }
 
         public function Download()
