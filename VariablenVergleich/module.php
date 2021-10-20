@@ -34,12 +34,14 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             $this->RegisterPropertyInteger('XMin', 0);
 
             $this->RegisterPropertyString('Chart', '');
+            $this->RegisterPropertyInteger('XVariable', 0);
+            $this->RegisterPropertyInteger('YVariable', 0);
             
-            $this->RegisterVariableString('ChartSVG', $this->Translate('Chart'), '~HTMLBox');
-            $this->RegisterVariableString('Function', $this->Translate('Function'), '');
-            $this->RegisterVariableFloat('YIntercept', $this->Translate('b'), '');
-            $this->RegisterVariableFloat('Slope', $this->Translate('m'), '');
-            $this->RegisterVariableFloat('MeasureOfDetermination', $this->Translate('Measure of determination'), '');
+            $this->RegisterVariableString('ChartSVG', $this->Translate('Chart'), '~HTMLBox', 0);
+            $this->RegisterVariableString('Function', $this->Translate('Function'), '', 1);
+            $this->RegisterVariableFloat('Slope', $this->Translate('m'), '', 2);
+            $this->RegisterVariableFloat('YIntercept', $this->Translate('b'), '', 3);
+            $this->RegisterVariableFloat('MeasureOfDetermination', $this->Translate('Measure of determination'), '', 4);
         }
 
         public function Destroy()
@@ -203,7 +205,7 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             $axisNameLabelOffset = 25;
             //Y label
             $charHeight = imagefontheight($font);
-            $yLabelText = $this->getAxisLabel('YValue');
+            $yLabelText = $this->getAxisLabel('YVariable');
             imagestringup($image, 5, $getXValue($xAxisMin) - imagefontheight($font) - $axisLabelOffset * 2 - ($charWidth * strlen(strval($yAxisMax))), intval($customHeight/2 + (($charWidth * strlen($yLabelText)) / 2)), $yLabelText, $textColor);
             $svg .= $this->drawAxisTitle(1 + $svgOffset, $customHeight / 2, 'black', $yLabelText, true);
         
@@ -229,18 +231,22 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             }
         
             //X label
-            $xLabelText = $this->getAxisLabel('XValue');
+            $xLabelText = $this->getAxisLabel('XVariable');
             imagestring($image, 5, $customWidth/2 - intval((strlen($xLabelText) * $charWidth) / 2), $getYValue($xAxisMin) + $axisNameLabelOffset, $xLabelText, $textColor);
             $svg .= $this->drawAxisTitle($customWidth/2, $customHeight - $svgOffset, 'black', $xLabelText);
 
             for ($i = 0; $i < count($axesValues); $i++) {
-                $xVariableId = $axesValues[$i]['XValue'];
-                $yVariableId = $axesValues[$i]['YValue'];
+                $xVariableId = $this->ReadPropertyInteger('XVariable');
+                $yVariableId = $this->ReadPropertyInteger('YVariable');
+                if ($xVariableId == 0 || $yVariableId == 0) {
+                    $this->SetStatus(202);
+                    return;
+                }
                 if ($xVariableId != 0 && $yVariableId != 0) {
                     $archiveID = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}')[0];
                 
-                    $startDate = $this->dateTimeToTimestamp('StartDate');
-                    $endDate = $this->dateTimeToTimestamp('EndDate');
+                    $startDate = $this->dateTimeToTimestamp(json_decode($axesValues[$i]['StartDate'], true));
+                    $endDate = $this->dateTimeToTimestamp(json_decode($axesValues[$i]['EndDate'], true));
                     $rawX = AC_GetAggregatedValues($archiveID, $xVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
                     $xVarValues = [];
                     foreach ($rawX as $dataset) {
@@ -371,9 +377,9 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             return $fixedRGB;
         }
 
-        private function dateTimeToTimestamp($property)
+        private function dateTimeToTimestamp($date)
         {
-            $date = json_decode($this->ReadPropertyString($property), true);
+            // $date = json_decode($this->ReadPropertyString($property), true);
             $timeStamp = strtotime(sprintf('%s.%s.%s', $date['day'], $date['month'], $date['year']));
             return $timeStamp;
         }
@@ -406,8 +412,7 @@ include_once __DIR__ . '/libs/WebHookModule.php';
 
         private function getAxisLabel(string $axis)
         {
-            $values = json_decode($this->ReadPropertyString('AxesValues'), true);
-            $variableID = $values[0][$axis];
+            $variableID = $this->ReadPropertyInteger($axis);
             $variable = IPS_GetVariable($variableID);
             $profileName = $variable['VariableProfile'] ? $variable['VariableProfile'] : $variable['VariableCustomProfile'];
             $profile = IPS_GetVariableProfile($profileName);

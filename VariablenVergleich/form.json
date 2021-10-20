@@ -9,32 +9,42 @@
                         {
                             "type": "ExpansionPanel",
                             "caption": "Values",
-                            "width": "500px",
+                            "width": "450px",
                             "items": [
+                                {
+                                    "type": "SelectVariable",
+                                    "name": "YVariable",
+                                    "caption": "Y Variable",
+                                    "requiredLogging": 1
+                                },
+                                {
+                                    "type": "SelectVariable",
+                                    "name": "XVariable",
+                                    "caption": "X Variable",
+                                    "requiredLogging": 1
+                                },
                                 {
                                     "type": "List",
                                     "name": "AxesValues",
-                                    "caption": "Chart Values",
+                                    "caption": "Chart time periods",
                                     "add": true,
                                     "columns": [
                                         {
-                                            "caption": "X Value",
-                                            "name": "XValue",
-                                            "width": "auto",
+                                            "caption": "Start Date",
+                                            "name": "StartDate",
+                                            "width": "100px",
                                             "add": 0,
                                             "edit": {
-                                                "type": "SelectVariable",
-                                                "requiredLogging": 1
+                                                "type": "SelectDate"
                                             }
                                         },
                                         {
-                                            "caption": "Y Value",
-                                            "name": "YValue",
-                                            "width": "150px",
+                                            "caption": "End Date",
+                                            "name": "EndDate",
+                                            "width": "100px",
                                             "add": 0,
                                             "edit": {
-                                                "type": "SelectVariable",
-                                                "requiredLogging": 1
+                                                "type": "SelectDate"
                                             }
                                         },
                                         {
@@ -83,29 +93,13 @@
                                             "value": 4
                                         }
                                     ]
-                                },
-                                {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "SelectDate",
-                                            "caption": "Start Date",
-                                            "name": "StartDate",
-                                            "width": "150px"
-                                        },
-                                        {
-                                            "type": "SelectDate",
-                                            "caption": "End Date",
-                                            "name": "EndDate",
-                                            "width": "150px"
-                                        }
-                                    ]
                                 }
+                                
                             ]
                         },
                         {
                             "type": "ExpansionPanel",
-                            "width": "500px",
+                            "width": "450px",
                             "caption": "Chart Settings",
                             "items": [
                                 {
