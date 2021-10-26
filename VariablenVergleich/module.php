@@ -296,8 +296,8 @@ include_once __DIR__ . '/libs/WebHookModule.php';
                 $this->SetValue('Slope', $lineParameters[1]);
                 $this->SetValue('Function', sprintf('f(x) = %s - %sx', $lineParameters[0], $lineParameters[1]));
                 $this->SetValue('MeasureOfDetermination', $lineParameters[2]);
-                imageline($image, $getXValue($xAxisMin), $getYValue($lineParameters[0]), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineColor);
-                $svg .= $this->drawLine($getXValue($xAxisMin), $getYValue($lineParameters[0]), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineSVGColor);
+                imageline($image, $getXValue($xAxisMin), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMin))), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineColor);
+                $svg .= $this->drawLine($getXValue($xAxisMin), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMin))), $getXValue($xAxisMax), intval($getYValue($lineParameters[0] + ($lineParameters[1] * $xAxisMax))), $lineSVGColor);
             }
             
             $svg .= '</svg>';
