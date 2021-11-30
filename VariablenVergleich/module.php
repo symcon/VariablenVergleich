@@ -18,8 +18,6 @@ include_once __DIR__ . '/libs/WebHookModule.php';
         {
             //Variable settings
             $this->RegisterPropertyInteger('AggregationLevel', 1);
-            $this->RegisterPropertyString('StartDate', '{"year":2021,"month":1,"day":1}');
-            $this->RegisterPropertyString('EndDate', '{"year":2021,"month":1,"day":1}');
             $this->RegisterPropertyString('AxesValues', '[]');
             
             //Chart settings
@@ -35,11 +33,23 @@ include_once __DIR__ . '/libs/WebHookModule.php';
 
             $this->RegisterPropertyString('Chart', '');
             
-            $this->RegisterVariableString('ChartSVG', $this->Translate('Chart'), '~HTMLBox');
-            $this->RegisterVariableString('Function', $this->Translate('Function'), '');
-            $this->RegisterVariableFloat('YIntercept', $this->Translate('b'), '');
-            $this->RegisterVariableFloat('Slope', $this->Translate('m'), '');
-            $this->RegisterVariableFloat('MeasureOfDetermination', $this->Translate('Measure of determination'), '');
+            $this->RegisterVariableString('ChartSVG', $this->Translate('Chart'), '~HTMLBox', 50);
+            $this->RegisterVariableString('Function', $this->Translate('Function'), '', 10);
+            $this->RegisterVariableFloat('YIntercept', $this->Translate('b'), '', 20);
+            $this->RegisterVariableFloat('Slope', $this->Translate('m'), '', 30);
+            $this->RegisterVariableFloat('MeasureOfDetermination', $this->Translate('Measure of determination'), '', 40);
+
+            //Time period
+            $this->RegisterVariableInteger('StartDate', $this->Translate('Start Date'), '~UnixTimestampDate', 60);
+            $this->EnableAction('StartDate');
+            if ($this->GetValue('StartDate') == 0) {
+                $this->SetValue('StartDate', strtotime('01.01.' . date("Y")));
+            }
+            $this->RegisterVariableInteger('EndDate', $this->Translate('End Date'), '~UnixTimestampDate', 70);
+            $this->EnableAction('EndDate');
+            if ($this->GetValue('EndDate') == 0) {
+                $this->SetValue('EndDate', time());
+            }
         }
 
         public function Destroy()
@@ -58,6 +68,7 @@ include_once __DIR__ . '/libs/WebHookModule.php';
                 IPS_SetIdent($mediaID, 'ChartPNG');
                 IPS_SetName($mediaID, 'Chart');
                 IPS_SetParent($mediaID, $this->InstanceID);
+                IPS_SetPosition($mediaID, 50);
                 $this->UpdateFormField('Chart', 'mediaID', $mediaID);
             }
             $this->UpdateChart();
@@ -77,6 +88,20 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             }
 
             return json_encode($form);
+        }
+
+        public function RequestAction($Ident, $Value)
+        {
+            switch ($Ident) {
+                case 'StartDate':
+                case 'EndDate':
+                    $this->SetValue($Ident, $Value);
+                    $this->UpdateChart();
+                    break;
+
+                default:
+                    throw new Exception('Invalid Ident');
+            }
         }
 
         public function UpdateChart()
@@ -239,8 +264,8 @@ include_once __DIR__ . '/libs/WebHookModule.php';
                 if ($xVariableId != 0 && $yVariableId != 0) {
                     $archiveID = IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}')[0];
                 
-                    $startDate = $this->dateTimeToTimestamp('StartDate');
-                    $endDate = $this->dateTimeToTimestamp('EndDate');
+                    $startDate = $this->GetValue('StartDate');
+                    $endDate = $this->GetValue('EndDate');
                     $rawX = AC_GetAggregatedValues($archiveID, $xVariableId, $this->ReadPropertyInteger('AggregationLevel'), $startDate, $endDate, 0);
                     $xVarValues = [];
                     foreach ($rawX as $dataset) {
@@ -369,13 +394,6 @@ include_once __DIR__ . '/libs/WebHookModule.php';
             ];
             $this->SendDebug('FIXED_RGB', json_encode($fixedRGB), 0);
             return $fixedRGB;
-        }
-
-        private function dateTimeToTimestamp($property)
-        {
-            $date = json_decode($this->ReadPropertyString($property), true);
-            $timeStamp = strtotime(sprintf('%s.%s.%s', $date['day'], $date['month'], $date['year']));
-            return $timeStamp;
         }
 
         private function pngPoint($image, $x, $y, $radius, $color)

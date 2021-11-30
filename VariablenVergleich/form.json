@@ -83,23 +83,6 @@
                                             "value": 4
                                         }
                                     ]
-                                },
-                                {
-                                    "type": "RowLayout",
-                                    "items": [
-                                        {
-                                            "type": "SelectDate",
-                                            "caption": "Start Date",
-                                            "name": "StartDate",
-                                            "width": "150px"
-                                        },
-                                        {
-                                            "type": "SelectDate",
-                                            "caption": "End Date",
-                                            "name": "EndDate",
-                                            "width": "150px"
-                                        }
-                                    ]
                                 }
                             ]
                         },
