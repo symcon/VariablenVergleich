@@ -1,5 +1,5 @@
 # VariablenVergleich
-Beschreibung des Moduls.
+Das Modul erstellt anhand einer oder mehreren Variablenpaaren ein Diagramm mit Puktewolken und mit Hilfe von einfacher Liniaren Regression eine Linie durch die Punktewolke. Das Diagramm kann als SVG oder PNG ausgegeben werden.
 
 ### Inhaltsverzeichnis
 
@@ -13,7 +13,9 @@ Beschreibung des Moduls.
 
 ### 1. Funktionsumfang
 
-*
+* Erstellung eines Diagramms mit ein oder mehreren Wertepaaren 
+* Ausgabe des Diagramms in SVG oder PNG 
+* Ausgabe von Steigung, Y-Achsenabschnitt, Funktion und Bestimmtheitsmaß des Graphen
 
 ### 2. Voraussetzungen
 
@@ -31,10 +33,27 @@ Beschreibung des Moduls.
 
 __Konfigurationsseite__:
 
-Name     | Beschreibung
--------- | ------------------
-         |
-         |
+Werte:
+Name              | Beschreibung
+----------------- | ------------------
+X Wert            | Variablenauswahl für die X-Achse
+Y Wert            | Variablenauswahl für die Y-Achse
+Punkt             | Farbauswahl für die Punktemakierung
+Linie             | Farbauswal für die Linie 
+Aggregationsstufe | Stufe wie detailiert die Daten aus dem Achiv geholt werden 
+
+Diagramm Einstellungen:
+Name                   | Beschreibung 
+---------------------- | ----------
+Achsen kleine Schritte | Gibt an in welchen Schritten kleine Makierungen sein sollen
+Achsen große Schritte  | Gibt an in welchen Schritten die Makierung mit Beschriftung ist
+Breite                 | Gibt an wie breit das Diagramm ist
+Höhe                   | Gibt an wie hoch das Diagramm ist
+Y - Min                | Gibt den minimalen Wert auf der Y-Achse an
+Y - Max                | Gibt den maximalen Wert auf der Y-Achse an 
+X - Min                | Gibt den minimalen Wert auf der X-Achse an 
+X - Max                | Gibt den maximalen Wert auf der X-Achse an 
+Digramm Format         | Gibt an ob das Diagramm als SVG oder PNG ausgegeben werden soll
 
 ### 5. Statusvariablen und Profile
 
@@ -42,17 +61,16 @@ Die Statusvariablen/Kategorien werden automatisch angelegt. Das Löschen einzeln
 
 #### Statusvariablen
 
-Name   | Typ     | Beschreibung
------- | ------- | ------------
-       |         |
-       |         |
+Name             | Typ            | Beschreibung
+---------------- | -------------- | ------------
+Funktion         | String         | gibt die mathematische Funktion des Graphen wieder
+b                | Float          | Beschreibt den y-Achsenabschnitt des Graphen
+m                | Float          | Beschreibt die Steigung des Graphen 
+Bestimmtheitsmaß | Float          | Beschreibt wie genau der Graph zu der Punktewolke passt
+Startdatum       | Integer        | Datum, ab welchem die Punktewolke starten soll
+Enddatum         | Integer        | Datum, bis zu welchem die Punktewolke geht
+Chart            | String / Media | Gibt das Diagramm je nach Einstellung als PNG oder SVG
 
-#### Profile
-
-Name   | Typ
------- | -------
-       |
-       |
 
 ### 6. WebFront
 
@@ -60,8 +78,20 @@ Die Funktionalität, die das Modul im WebFront bietet.
 
 ### 7. PHP-Befehlsreferenz
 
-`boolean LR_BeispielFunktion(integer $InstanzID);`
-Erklärung der Funktion.
+`void LR_UpdateChart(integer $InstanzID);`
+Generiert das Diagramm neu. Setzt es in das Ausgewählte Format und zeigt es im Konfigurationsformular an. 
 
 Beispiel:
-`LR_BeispielFunktion(12345);`
+`LR_generateChart(12345);`
+
+`array LR_UpdateChart(integer $InstanzID);`
+Generiert das Diagramm neu und gibt es als SVG und PNG zurück.
+
+Beispiel:
+`LR_generateChart(12345);`
+
+`void LR_Download(integer $InstanzID);`
+Generiert das Diagramm neu und gibt eine Adresse aus. Über einen Button im Konfigurationsformular wird im Browser das Diagramm angezeigt.
+
+Beispiel:
+`LR_Download(12345);`
