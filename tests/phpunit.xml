@@ -6,7 +6,7 @@
   </php>
   <source>
     <include>
-      <directory suffix=".php">../VariablenVergleich</directory>
+      <directory suffix=".php">../VariableComparison</directory>
     </include>
   </source>
 </phpunit>

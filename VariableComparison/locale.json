@@ -36,7 +36,9 @@
             "Line Color": "Linie",
             "X Value": "X Wert",
             "Y Value": "Y Wert",
-            "Function": "Funktion"
+            "Function": "Funktion",
+            "https://www.symcon.de/en/service/documentation/module-reference/variablecomparison/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/variablenvergleich/",
+            "VariableComparison": "VariablenVergleich"
         }
     }
 }

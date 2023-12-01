@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 include_once __DIR__ . '/libs/WebHookModule.php';
-class VariablenVergleich extends WebHookModule
+class VariableComparison extends WebHookModule
 {
     public const PNG_FONT_SIZE = 5;
     public const MINOR_LINE = 4 / 2;
