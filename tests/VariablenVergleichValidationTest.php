@@ -8,8 +8,8 @@ class VariablenVergleichValidationTest extends TestCaseSymconValidation
     {
         $this->validateLibrary(__DIR__ . '/..');
     }
-    public function testValidateVariablenVergleichModule(): void
+    public function testValidateVariableComparisonModule(): void
     {
-        $this->validateModule(__DIR__ . '/../VariablenVergleich');
+        $this->validateModule(__DIR__ . '/../VariableComparison');
     }
 }
